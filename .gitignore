@@ -49,6 +49,11 @@ Thumbs.db
 # 프로젝트 특정
 prompt.txt
 
+# 개발/배포 가이드 파일 (사용자에게 불필요)
+GIT_SETUP.md
+DEPLOYMENT.md
+fix_git_path.ps1
+
 # 결과 파일
 result.xlsx
 *.xlsx
