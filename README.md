@@ -1,12 +1,13 @@
-# 카카오 지오코딩 및 역지오코딩 모듈
+# 카카오/네이버 지오코딩 및 역지오코딩 모듈
 
-카카오 로컬 API를 사용하여 주소와 좌표를 변환하는 Python 모듈입니다.
+카카오 로컬 API 또는 네이버 지도(NCP) API를 사용하여 주소와 좌표를 변환하는 Python 모듈입니다.
 **데이터프레임(엑셀/CSV)을 입력으로 받아 변환 결과를 추가합니다.**
 
 ## 기능
 
 - **지오코딩**: 주소 컬럼을 좌표(경도, 위도) 컬럼으로 변환
 - **역지오코딩**: 좌표 컬럼을 주소 컬럼으로 변환 (도로명 주소, 지번 주소, 상세 정보 포함)
+- **Provider 선택**: `provider='kakao'` 또는 `provider='naver'`
 - **API 응답 저장**: 역지오코딩 시 API 응답을 JSON 파일로 저장 가능
 
 ## 설치
@@ -44,9 +45,14 @@ pip install -r requirements.txt
 
 #### 2. API 키 설정
 
-카카오 개발자 콘솔에서 REST API 키를 발급받으세요:
-- [카카오 개발자 콘솔](https://developers.kakao.com)
-- [로컬 API 가이드](https://developers.kakao.com/docs/latest/ko/local/dev-guide)
+사용할 Provider에 맞게 API 키를 발급받으세요:
+- **Kakao**: [카카오 개발자 콘솔](https://developers.kakao.com) → 로컬 API
+- **Naver**: Naver Cloud Platform → Maps/Geocoding API (NCP)
+  - **주의**: NCP Maps API는 **VPC 환경에서만 이용 가능**합니다. (문서 참고)
+  - **중요(무료 이용량/대표계정)**: Geocoding / Reverse Geocoding은 **대표계정 1개에 한해 월 3,000,000건 무료**가 제공됩니다. 대표계정이 아니면 무료 구간이어도 과금될 수 있습니다.
+    - 요금/무료 이용량: [NCP Maps 상품 페이지](https://www.ncloud.com/product/applicationservice/maps), [무료 이용량 FAQ](https://www.ncloud.com/support/faq/prod/2828)
+    - 대표계정 개념/변경: [대표 계정 FAQ](https://www.ncloud.com/support/faq/prod/2829)
+    - 대표계정 확인(콘솔 가이드): [Maps 대표계정조회](https://guide-fin.ncloud-docs.com/docs/maps-app#Maps%EB%8C%80%ED%91%9C%EA%B3%84%EC%A0%95%EC%A1%B0%ED%9A%8C)
 
 #### 방법 1: config.py 파일 사용 (권장)
 
@@ -56,6 +62,8 @@ cp config.py.example config.py
 
 # config.py 파일을 열어서 API 키 입력
 # KAKAO_REST_API_KEY = "실제_API_키"
+# NAVER_MAPS_API_KEY_ID = "실제_API_KEY_ID"
+# NAVER_MAPS_API_KEY = "실제_API_KEY"
 ```
 
 #### 방법 2: 환경 변수 사용
@@ -63,12 +71,18 @@ cp config.py.example config.py
 ```bash
 # Windows (PowerShell)
 $env:KAKAO_REST_API_KEY="실제_API_키"
+$env:NAVER_MAPS_API_KEY_ID="실제_API_KEY_ID"
+$env:NAVER_MAPS_API_KEY="실제_API_KEY"
 
 # Windows (CMD)
 set KAKAO_REST_API_KEY=실제_API_키
+set NAVER_MAPS_API_KEY_ID=실제_API_KEY_ID
+set NAVER_MAPS_API_KEY=실제_API_KEY
 
 # Linux/Mac
 export KAKAO_REST_API_KEY="실제_API_키"
+export NAVER_MAPS_API_KEY_ID="실제_API_KEY_ID"
+export NAVER_MAPS_API_KEY="실제_API_KEY"
 ```
 
 ## 사용 방법
@@ -77,7 +91,7 @@ export KAKAO_REST_API_KEY="실제_API_키"
 
 ```python
 import pandas as pd
-from kakao_geocoding import geocode
+from geocoding import geocode
 
 # 데이터프레임 생성
 df = pd.DataFrame({
@@ -89,7 +103,8 @@ df = pd.DataFrame({
 })
 
 # 지오코딩 수행 (주소 컬럼을 좌표로 변환)
-result = geocode(df, address_column='address')
+# provider='kakao' (기본값) 또는 provider='naver'
+result = geocode(df, address_column='address', provider='kakao')
 
 # 결과 확인
 print(result[['name', 'address', 'longitude', 'latitude']])
@@ -99,7 +114,7 @@ print(result[['name', 'address', 'longitude', 'latitude']])
 
 ```python
 import pandas as pd
-from kakao_geocoding import reverse_geocode
+from geocoding import reverse_geocode
 
 # 데이터프레임 생성
 df = pd.DataFrame({
@@ -113,7 +128,8 @@ df = pd.DataFrame({
 result = reverse_geocode(
     df,
     longitude_column='lon',
-    latitude_column='lat'
+    latitude_column='lat',
+    provider='kakao'  # 또는 'naver'
 )
 
 # 결과 확인
@@ -128,7 +144,8 @@ result = reverse_geocode(
     df,
     longitude_column='lon',
     latitude_column='lat',
-    include_details=True  # 시도, 시군구, 읍면동리, 건물명, 우편번호 등 모든 정보
+    include_details=True,  # 시도, 시군구, 읍면동리, 건물명, 우편번호 등(가능한 범위)
+    provider='kakao'       # 또는 'naver'
 )
 
 # 간단한 주소만 필요한 경우
@@ -136,7 +153,8 @@ result = reverse_geocode(
     df,
     longitude_column='lon',
     latitude_column='lat',
-    include_details=False  # 도로명 주소와 지번 주소만
+    include_details=False,  # 도로명 주소와 지번 주소만
+    provider='kakao'        # 또는 'naver'
 )
 ```
 
@@ -148,7 +166,8 @@ result = reverse_geocode(
     df,
     longitude_column='lon',
     latitude_column='lat',
-    save_json=True
+    save_json=True,
+    provider='kakao'  # 또는 'naver'
 )
 
 # 지정한 파일명으로 저장
@@ -156,7 +175,8 @@ result = reverse_geocode(
     df,
     longitude_column='lon',
     latitude_column='lat',
-    save_json='my_response.json'
+    save_json='my_response.json',
+    provider='kakao'  # 또는 'naver'
 )
 
 # 여러 행일 경우 인덱스가 자동 추가됨
@@ -167,13 +187,13 @@ result = reverse_geocode(
 
 ```python
 import pandas as pd
-from kakao_geocoding import geocode
+from geocoding import geocode
 
 # 엑셀 파일 읽기 (pandas 기본 기능 사용)
 df = pd.read_excel('addresses.xlsx')
 
 # 지오코딩 수행
-result = geocode(df, address_column='주소')
+result = geocode(df, address_column='주소', provider='kakao')  # 또는 'naver'
 
 # 결과 저장
 result.to_excel('result.xlsx', index=False)
@@ -182,7 +202,7 @@ result.to_excel('result.xlsx', index=False)
 ### 커스텀 컬럼명 사용
 
 ```python
-from kakao_geocoding import geocode
+from geocoding import geocode
 
 df = pd.DataFrame({
     '장소명': ['카카오 본사'],
@@ -194,21 +214,23 @@ result = geocode(
     df,
     address_column='주소',
     longitude_column='경도',  # 기본값: 'longitude'
-    latitude_column='위도'    # 기본값: 'latitude'
+    latitude_column='위도',   # 기본값: 'latitude'
+    provider='kakao'          # 또는 'naver'
 )
 ```
 
 ### 역지오코딩 커스텀 컬럼명
 
 ```python
-from kakao_geocoding import reverse_geocode
+from geocoding import reverse_geocode
 
 result = reverse_geocode(
     df,
     longitude_column='lon',
     latitude_column='lat',
     address_column='지번주소',        # 기본값: 'address'
-    road_address_column='도로명주소'   # 기본값: 'road_address'
+    road_address_column='도로명주소',  # 기본값: 'road_address'
+    provider='kakao'                  # 또는 'naver'
 )
 ```
 
@@ -224,6 +246,7 @@ result = reverse_geocode(
 - `longitude_column` (str, 선택): 경도 컬럼명 (기본값: "longitude")
 - `latitude_column` (str, 선택): 위도 컬럼명 (기본값: "latitude")
 - `delay` (float, 선택): API 호출 간 지연 시간(초) (기본값: 0.1)
+- `provider` (str, 선택): `"kakao"` 또는 `"naver"` (기본값: `"kakao"`)
 
 **반환값:**
 - `pd.DataFrame`: 변환 결과가 추가된 데이터프레임
@@ -245,7 +268,7 @@ result = geocode(df, 'address')
 ### `reverse_geocode(df, longitude_column, latitude_column, ...)`
 
 좌표 컬럼을 주소로 변환하여 데이터프레임에 추가합니다.
-**카카오 API는 한 번의 호출로 도로명 주소와 지번 주소를 모두 반환합니다.**
+Provider에 따라 반환되는 상세 정보의 범위가 다를 수 있습니다.
 
 **매개변수:**
 - `df` (pd.DataFrame): 입력 데이터프레임
@@ -261,6 +284,7 @@ result = geocode(df, 'address')
   - `True` 또는 `"auto"`: 자동으로 파일명 생성 (`reverse_geocode_YYYYMMDD_HHMMSS.json`)
   - 문자열: 지정한 경로에 저장 (여러 행일 경우 인덱스 추가)
 - `delay` (float, 선택): API 호출 간 지연 시간(초) (기본값: 0.1)
+- `provider` (str, 선택): `"kakao"` 또는 `"naver"` (기본값: `"kakao"`)
 
 **반환값:**
 - `pd.DataFrame`: 변환 결과가 추가된 데이터프레임
@@ -389,7 +413,7 @@ df = pd.DataFrame({
     'lon': [127.0, 128.0],
     'lat': [37.0, 38.0]
 })
-result = reverse_geocode(df, 'lon', 'lat', save_json='responses')
+result = reverse_geocode(df, 'lon', 'lat', save_json='responses', provider='kakao')
 # → responses_0.json, responses_1.json 생성
 ```
 
@@ -410,6 +434,21 @@ result = reverse_geocode(df, 'lon', 'lat', save_json='responses')
 - [주소로 좌표 변환](https://developers.kakao.com/docs/latest/ko/local/dev-guide#주소로-좌표변환)
 - [좌표로 주소 변환](https://developers.kakao.com/docs/latest/ko/local/dev-guide#좌표로-주소변환)
 
+- 네이버 지도(NCP) 문서:
+  - [Maps 개요](https://api.ncloud-docs.com/docs/application-maps-overview)
+  - [Geocoding](https://api.ncloud-docs.com/docs/application-maps-geocoding)
+  - [Reverse Geocoding](https://api.ncloud-docs.com/docs/application-maps-reversegeocoding)
+
+---
+
+## (Naver) 401 Unauthorized / 403 Forbidden 해결 팁
+
+- **401 Unauthorized**
+  - `NAVER_MAPS_API_KEY_ID` / `NAVER_MAPS_API_KEY` 값이 잘못되었거나, **다른 상품(다른 프로젝트)의 키**일 가능성이 큽니다.
+  - NCP 문서 예시처럼 요청에 `Accept: application/json` 헤더가 포함되는지 확인해보세요.
+- **403 Forbidden**
+  - **Maps/Geocoding 상품이 프로젝트에서 활성화되지 않았거나**, (설정한 경우) **IP 제한 등 허용 정책**에 의해 막혔을 수 있습니다.
+
 ---
 
 ## 보안 주의사항
@@ -426,4 +465,7 @@ result = reverse_geocode(df, 'lon', 'lat', save_json='responses')
 
 ## 라이선스
 
-이 모듈은 카카오 API를 사용합니다. 카카오 API 사용 약관을 준수해야 합니다.
+이 모듈은 Kakao / Naver API를 사용합니다.
+
+- **Kakao**: 카카오 로컬 API 사용 약관을 준수해야 합니다.
+- **Naver (NCP Maps)**: Naver Cloud Platform Maps API 사용 약관 및 정책(대표계정/무료 이용량/VPC 환경 등)을 준수해야 합니다.

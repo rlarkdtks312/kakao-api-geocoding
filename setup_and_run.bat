@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 echo ========================================
-echo 카카오 지오코딩 모듈 환경 설정 및 실행
+echo 지오코딩 모듈(Kakao/Naver) 환경 설정 및 실행
 echo ========================================
 echo.
 
@@ -72,6 +72,9 @@ if not exist config.py (
         echo.
         echo ========================================
         echo 중요: config.py 파일을 열어서 API 키를 입력하세요!
+        echo - KAKAO_REST_API_KEY
+        echo - NAVER_MAPS_API_KEY_ID
+        echo - NAVER_MAPS_API_KEY
         echo ========================================
         echo.
     ) else (
@@ -117,7 +120,7 @@ if "%choice%"=="1" (
     echo.
     echo Python 인터프리터를 실행합니다...
     echo 가상환경이 활성화된 상태입니다.
-    echo 모듈을 사용하려면: from kakao_geocoding import geocode, reverse_geocode
+    echo 모듈을 사용하려면: from geocoding import geocode, reverse_geocode
     echo.
     python
 ) else (
